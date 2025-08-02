@@ -2,43 +2,44 @@ import streamlit as st
 import random
 from PIL import Image
 
-st.set_page_config(page_title="Instagram Violation Scanner", layout="centered")
+st.set_page_config(page_title="Instagram Violation & Impersonation Detector", layout="centered")
 
 st.title("📸 Instagram Violation & Impersonation Detector")
 st.write("Analyze IG profiles for simulated violations and impersonation attempts.")
 
-# Input
+# Inputs
 username = st.text_input("Instagram Username", placeholder="@username")
 
-uploaded_file = st.file_uploader("Upload Screenshot (Profile/Post)", type=["png", "jpg", "jpeg"])
+uploaded_ss = st.file_uploader("Upload Profile Screenshot", type=["png", "jpg", "jpeg"])
+uploaded_pp = st.file_uploader("Optional: Upload Profile Photo", type=["png", "jpg", "jpeg"])
 
-# Violation reasons (ensure always 2–4 reports)
+# Violation simulation
 all_reasons = ["Hate Speech", "Self-Harm", "Violence", "Spam", "Harassment", "Scam", "Adult Content"]
 
 def generate_violation_report():
     chosen = random.sample(all_reasons, k=random.randint(2, 4))
-    report_data = {r: random.randint(2, 7) for r in chosen}
-    return report_data
+    return {r: random.randint(2, 7) for r in chosen}
 
-def check_impersonation(username):
-    # Simple logic for impersonation percentage
+def check_impersonation(username, has_photo=False):
     suspicious_keywords = ["real", "official", "backup", "admin", "celeb", "support", "help", "mod"]
     chance = 0
     for word in suspicious_keywords:
         if word in username.lower():
             chance += random.randint(15, 35)
 
-    # Random base chance if nothing suspicious
-    if chance == 0:
-        chance = random.randint(5, 25)
+    if has_photo:
+        # Slight boost if a profile photo is used (simulating detection)
+        chance += random.randint(10, 20)
     else:
-        chance += random.randint(10, 30)
+        chance += random.randint(5, 15)
 
-    # Cap chance
-    chance = min(chance, 95)
+    # Random fallback if nothing found
+    if chance == 0:
+        chance = random.randint(10, 30)
 
-    # Return label
-    if chance > 70:
+    chance = min(chance, 98)
+
+    if chance > 75:
         label = "🛑 Likely impersonating a public figure or brand"
     elif chance > 40:
         label = "⚠️ Possible impersonation"
@@ -47,27 +48,34 @@ def check_impersonation(username):
 
     return chance, label
 
-# Button
+# Run analysis
 if st.button("🔍 Scan Profile"):
     if not username.strip():
         st.warning("Please enter a username.")
-    elif not uploaded_file:
-        st.warning("Please upload a screenshot.")
+    elif not uploaded_ss:
+        st.warning("Upload a screenshot.")
     else:
-        st.success(f"Scanning @{username}...")
+        st.success(f"Analyzing @{username}...")
 
-        img = Image.open(uploaded_file)
-        st.image(img, caption="Uploaded Screenshot", use_column_width=True)
+        # Show images side-by-side
+        col1, col2 = st.columns(2)
+        with col1:
+            st.image(Image.open(uploaded_ss), caption="Profile Screenshot", use_column_width=True)
+        with col2:
+            if uploaded_pp:
+                st.image(Image.open(uploaded_pp), caption="Profile Photo", use_column_width=True)
+            else:
+                st.info("No profile photo uploaded.")
 
         st.markdown("### 📝 Detected Violations:")
-        for reason, count in generate_violation_report().items():
+        report_data = generate_violation_report()
+        for reason, count in report_data.items():
             st.markdown(f"- ✅ **{count}× {reason}**")
 
-        # Impersonation Detection
         st.markdown("---")
         st.markdown("### 🕵️ Impersonation Detection:")
-        chance, result = check_impersonation(username)
+        chance, result = check_impersonation(username, has_photo=uploaded_pp is not None)
         st.markdown(f"**Impersonation Probability:** `{chance}%`")
         st.markdown(result)
 
-        st.info("📌 This is a simulated report. No actual data was sent to Instagram.")
+        st.info("📌 This is a simulated tool. No real Instagram accounts are accessed.")
